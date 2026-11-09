@@ -3,13 +3,16 @@ name = "tongagents-lesson6"
 version = "0.1.0"
 description = "Lesson 6 — FileMemory 持久化记忆作业脚手架 (参考 SimpleMemory 实现文件版 Memory)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 dependencies = [
-    # tongagents SDK 从 ../wheels/ 本地 wheel 安装 (不走 nexus, 见 lesson1/INSTALL.md)
-    # pip install ../wheels/tongagents-*.whl
+    # tongagents SDK 从 ../wheels/ 本地 wheel 安装（不走 Nexus）
+    "tongagents==2.7.65",
     # dotenv (cli_memory_sample.py 读 .env)
     "python-dotenv>=1.0.0",
 ]
+
+[tool.uv.sources]
+tongagents = { path = "../wheels/tongagents-2.7.65-cp312-cp312-linux_x86_64.whl" }
 
 [tool.setuptools]
 py-modules = ["check_memory", "cli_memory_sample"]

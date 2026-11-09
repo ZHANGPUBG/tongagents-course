@@ -73,16 +73,15 @@ unzip -o wheels/tongagents-wheels.zip -d wheels/
 - 初始化本课环境（首次使用执行一次，与 lesson1 同一套流程；需要 Python 3.12）：
 
 ```bash
+# 安装 uv（如果还没有）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 cd lesson4
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl   # 先装 wheel (SDK)
-pip install -e .                         # 再装本课自身依赖 (python-dotenv)
+uv sync
 ```
 
-> 装了 uv 的同学可以等价使用：`uv venv && source .venv/bin/activate`，
-> `uv pip install ../wheels/tongagents-*.whl && uv pip install -e .`，
-> 运行时用 `python ...`（已激活）或 `uv run --no-sync python ...`（未激活）。
-> 顺序很重要：先 wheel 再 `-e .`，否则 pip 会去公网找 tongagents 而失败。
+`uv sync` 会根据 `pyproject.toml` 的 `[tool.uv.sources]` 安装本地 tongagents，
+并创建 `.venv`，使用仓库中的 `uv.lock` 锁定依赖。
 
 - `.env` 沿用 cli-sample 的那份（`cli_file_sample.py` 会自动加载 `../cli-sample/.env`）。
 
@@ -97,7 +96,7 @@ pip install -e .                         # 再装本课自身依赖 (python-dote
 打开 `tools/write_file_tool.py`，按注释实现 `_do_call`。完成后手动验证：
 
 ```bash
-cd lesson4 && python -c "
+cd lesson4 && uv run python -c "
 from tools.write_file_tool import WriteFileTool
 from tongagents.tools.tool_manager import ToolManager
 import json, tempfile, pathlib
@@ -121,7 +120,7 @@ print(out, '| 磁盘上真实存在:', p.exists())
 ## 第 7 步：跑自测（无 Key 无网络）
 
 ```bash
-cd lesson4 && python check_homework.py
+cd lesson4 && uv run python check_homework.py
 ```
 
 > `check_homework.py` 会自动设置 dummy `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL`，
@@ -134,7 +133,7 @@ cd lesson4 && python check_homework.py
 `cli_file_sample.py` 里只剩两处：TODO(7) 用 `ReactAgentSetting` 构造 `StatelessReactAgent`（工具清单来自 `ToolManager.tool_classes`）；TODO(8) 从 `step()` 返回的 Action 列表里提取 `is_final_response=True` 的最终文本。运行：
 
 ```bash
-cd lesson4 && python cli_file_sample.py
+cd lesson4 && uv run python cli_file_sample.py
 ```
 
 按"最终效果"里的三连场景验收：创建 → 编辑 → 搜索，完成后去磁盘确认文件真的变了。
@@ -142,7 +141,7 @@ cd lesson4 && python cli_file_sample.py
 ## 验收标准
 
 - `check_homework.py` 8 项全部通过（含 FakeLLM 驱动真实 SDK 循环的两项终验）；
-- `python cli_file_sample.py` 真机完成"创建→编辑→搜索"连续场景，工具真实生效（文件真的变了）；
+- `uv run python cli_file_sample.py` 真机完成"创建→编辑→搜索"连续场景，工具真实生效（文件真的变了）；
 - 提交：`tools/` 与 `cli_file_sample.py` 的修改，以及一段真机对话记录。
 
 ## 延伸思考（选做）

@@ -3,17 +3,22 @@ name = "tongagents-lesson2"
 version = "0.2.0"
 description = "Lesson 2 示例 — CoT / Self-Consistency / ToT / RAG / PromptTemplate (本地 wheel 方式)"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12,<3.13"
 license = { text = "MIT" }
 dependencies = [
-    # TongAgents SDK 从 ../wheels/ 本地 wheel 安装 (不走 nexus, 见 INSTALL.md)
-    # pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
+    # TongAgents SDK 从 ../wheels/ 本地 wheel 安装（不走 Nexus）
+    "tongagents==2.7.65",
+    "tongagents-cli==1.8.65",
     # 测试依赖
     "pytest>=7.4.0",
     "pytest-asyncio>=0.23.0",
     # 可选：读 .env
     "python-dotenv>=1.0.0",
 ]
+
+[tool.uv.sources]
+tongagents = { path = "../wheels/tongagents-2.7.65-cp312-cp312-linux_x86_64.whl" }
+tongagents-cli = { path = "../wheels/tongagents_cli-1.8.65-cp312-cp312-linux_x86_64.whl" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

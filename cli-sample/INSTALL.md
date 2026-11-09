@@ -1,7 +1,7 @@
 # cli-sample 安装 — 本地 wheel 方式 (无 Nexus 权限)
 
 > **v0.4.0 重要变更**: 本示例 **不再依赖 BigAI Nexus 私有源**。仓库自带
-> `wheels/tongagents-wheels.zip`，解压后用 `pip install ./wheels/*.whl` 安装即可。
+> `wheels/tongagents-wheels.zip`，解压后执行 `uv sync` 即可。
 >
 > ⚠️ “本地 wheel”只表示不需要 Nexus；`pydantic / litellm / fastapi / boto3` 等
 > Python 依赖仍会从 PyPI（或镜像）下载。详见 [`../wheels/README.md`](../wheels/README.md)。
@@ -13,14 +13,15 @@
 | 项目 | 要求 |
 |---|---|
 | Python | **3.12**（仓库自带 wheel 为 `cp312`） |
-| pip | **>= 21.3**（PEP 517 支持） |
+| uv | 最新版（<https://docs.astral.sh/uv/>） |
 | 操作系统 | **Linux x86_64**（仓库自带 wheel 为 `linux_x86_64`） |
 | 网络 | 不需要 Nexus；Python 依赖需要 PyPI 或镜像 |
 
-> ✅ **不需要** pip.conf / Nexus 凭据 / [tool.uv.sources]
+> ✅ **不需要** pip.conf / Nexus 凭据 / 内网 editable 源
 >
-> ⚠️ macOS / Windows / ARM64 / Python 3.11 或 3.13 需要维护者额外提供
-> `py3-none-any` wheel；当前 zip 中没有。
+> ⚠️ Windows 请使用 WSL2，macOS 请使用 Docker（linux/amd64），详见
+> [`../docs/environment.md`](../docs/environment.md)。ARM64 / Python 3.11 或 3.13
+> 需要维护者额外提供 `py3-none-any` wheel；当前 zip 中没有。
 
 ---
 
@@ -48,33 +49,38 @@ ls -lh wheels/
 
 ---
 
-## 2. 创建虚拟环境
+## 2. 创建 / 同步环境（uv）
 
 ```bash
-cd cli-sample
-python3.12 -m venv .venv
-source .venv/bin/activate          # Linux / macOS
-# .venv\Scripts\activate           # Windows PowerShell
+# 安装 uv（如果还没有）
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-python -m pip install --upgrade pip  # 升级 pip (避免老版本解析问题)
+cd cli-sample
+uv sync
 ```
+
+`uv sync` 会读取 `pyproject.toml` 的 `[tool.uv.sources]`，安装仓库本地 wheel，
+并创建 `.venv`，使用仓库中的 `uv.lock` 锁定依赖。不需要手动 `pip install`。
 
 ---
 
-## 3. 安装本地 wheel (核心步骤)
+## 3. 安装本地 wheel（由 uv 自动完成）
 
-```bash
-# 3.1 装 tongagents SDK (TongAgent/Agent/StatelessReactAgent)
-pip install ../wheels/tongagents-*.whl
+`cli-sample/pyproject.toml` 已声明：
 
-# 3.2 装 tongagents_cli (可选, cli-sample 不直接用, 但 SDK 可能依赖)
-pip install ../wheels/tongagents_cli-*.whl
+```toml
+dependencies = [
+    "tongagents==2.7.65",
+    "tongagents-cli==1.8.65",
+    "python-dotenv>=1.0.0",
+]
 
-# 3.3 装 cli-sample 自身 (含本地 tools/ 子包 + python-dotenv)
-pip install -e .
+[tool.uv.sources]
+tongagents = { path = "../wheels/tongagents-2.7.65-cp312-cp312-linux_x86_64.whl" }
+tongagents-cli = { path = "../wheels/tongagents_cli-1.8.65-cp312-cp312-linux_x86_64.whl" }
 ```
 
-> ⚠️ **顺序很重要**: 先 wheel, 再 `-e .`。否则 cli-sample 会去 PyPI 找 tongagents 失败。
+所以只要先解压 wheel，`uv sync` 就会自动安装，不会去公共 PyPI 找 tongagents。
 
 ---
 
@@ -82,17 +88,17 @@ pip install -e .
 
 ```bash
 # 4.1 验证 Python 模块
-python -c "import tongagents; print('tongagents', tongagents.__version__)"
+uv run python -c "import tongagents; print('tongagents', tongagents.__version__)"
 
 # 4.2 验证 SDK 核心 API
-python -c "
+uv run python -c "
 from tongagents.agent import Agent, AgentSettings
 print('SDK OK')
 print('AgentSettings fields:', list(AgentSettings.model_fields.keys()))
 "
 
 # 4.3 验证本地 tools 子包
-python -c "
+uv run python -c "
 import sys; sys.path.insert(0, '.')
 from tools import bash_tool, read_file_tool, write_file_tool
 print('local tools OK')
@@ -128,7 +134,7 @@ vim .env
 ## 6. 跑示例
 
 ```bash
-python cli_sample.py
+uv run python cli_sample.py
 # 启动 REPL, 输入问题, SDK 自动调本地 tools
 # 输入 'exit' / 'quit' / Ctrl+D 退出
 ```
@@ -141,42 +147,34 @@ python cli_sample.py
 
 错误: `tongagents-2.7.65-cp312-cp312-linux_x86_64.whl is not a supported wheel on this platform.`
 
-解决:
+解决：
 
-```bash
-# 检查 Python 版本
-python --version   # 期望 3.12.x
-
-# 当前仓库 zip 没有 py3-none-any wheel。
-# 如果是 3.11 / 3.13 / ARM64 / macOS，请联系维护者获取对应版本的通用 wheel：
-#   tongagents-<version>-py3-none-any.whl
-#   tongagents_cli-<version>-py3-none-any.whl
-pip uninstall tongagents tongagents-cli -y
-# 然后安装维护者提供的 py3-none-any wheel
-```
+- 确认系统是 **Linux x86_64**、Python 是 **3.12.x**。
+- Windows 请使用 WSL2；macOS 请使用 Docker（linux/amd64）。
+  详见 [`../docs/environment.md`](../docs/environment.md)。
+- 当前仓库 zip 没有 `py3-none-any` wheel；如果确实需要其他平台，请联系维护者。
 
 ### 7.2 `ModuleNotFoundError: No module named 'tongagents'`
 
-- 确认 wheel 已装: `pip show tongagents`
-- 确认 wheel 在 `../wheels/` 目录下 (相对 cli-sample)
-- 用绝对路径试一下: `pip install /abs/path/to/wheels/tongagents-*.whl`
+- 确认已执行 `uv sync`（不是只执行 `uv run`）。
+- 确认已解压 `wheels/tongagents-wheels.zip`。
+- 确认 `pyproject.toml` 里的 `[tool.uv.sources]` 路径指向 `../wheels/` 下真实存在的 whl。
 
 ### 7.3 CLI 跑起来但 LLM 不响应
 
 - 检查 `.env` 是否配了 `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL`
-- 跑: `python -c "from dotenv import dotenv_values; print(dotenv_values('.env'))"`
+- 跑: `uv run python -c "from dotenv import dotenv_values; print(dotenv_values('.env'))"`
 
 ---
 
 ## 8. 升级 / 卸载
 
 ```bash
-# 升级 wheel
-pip install --upgrade ../wheels/tongagents-*.whl
-pip install --upgrade ../wheels/tongagents_cli-*.whl
+# 升级依赖（重新解析 uv.lock）
+uv sync --upgrade
 
-# 卸载全部
-pip uninstall tongagents tongagents-cli tongagents-cli-sample -y
+# 彻底删除本地环境（保留仓库中的 uv.lock）
+rm -rf .venv
 ```
 
 ---

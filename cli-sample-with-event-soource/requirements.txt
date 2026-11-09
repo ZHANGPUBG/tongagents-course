@@ -1,15 +1,13 @@
-# cli-sample-with-event-soource 依赖
+# 本示例的环境由 uv 管理，见 pyproject.toml 与 README.md。
 #
-# 核心：几乎全部使用 Python 3.11+ 标准库
-# - threading / queue / dataclasses / logging / signal
-#
-# tongagents 不在公共 PyPI，必须使用仓库中的本地 wheel：
+# 推荐流程：
 #   cd tongagents-course
 #   unzip -o wheels/tongagents-wheels.zip -d wheels/
-#   pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
+#   cd cli-sample-with-event-soource
+#   uv sync
 #
-# 本示例复用 ../cli-sample/tools/，因此需要在完整课程仓库内运行。
-# 推荐直接复用 cli-sample 的 .venv，详见 README.md。
-
-# OpenAI 兼容客户端（tongagents 已传递依赖，这里显式列出便于独立安装）
+# 本文件仅保留给需要 requirements.txt 的旧工具/IDE；不要用
+# `pip install tongagents`，该包不在公共 PyPI。
+#
+# OpenAI 兼容客户端（tongagents 已传递依赖，这里显式列出便于旧工具识别）
 openai>=1.0.0

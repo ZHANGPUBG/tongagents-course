@@ -49,7 +49,8 @@ v5 的关键点：
 ```text
 cli-sample-with-event-soource/
 ├── README.md
-├── requirements.txt
+├── pyproject.toml                     # uv 环境与本地 wheel 依赖
+├── requirements.txt                   # 兼容旧流程的额外依赖说明
 ├── test_run.py                        # 只验证 queue + event 注入，不调用 LLM
 └── src/
     ├── main.py                        # CLI 入口
@@ -68,31 +69,23 @@ cli-sample-with-event-soource/
 
 ## 安装
 
-本示例没有独立的 `pyproject.toml`，推荐直接复用 `cli-sample` 的虚拟环境：
+本示例有自己的 `pyproject.toml`，使用 uv 管理环境：
 
 ```bash
 # 在仓库根目录
 unzip -o wheels/tongagents-wheels.zip -d wheels/
 
-cd cli-sample
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
-pip install -e .
-
-# 本示例只需要额外的 openai（tongagents 已带大部分依赖）
-pip install "openai>=1.0.0"
+cd cli-sample-with-event-soource
+uv sync
 ```
 
-也可以按 `cli-sample/INSTALL.md` 建好环境后，直接用它的 `.venv` 运行：
-
-```bash
-cd cli-sample-with-event-soource/src
-../cli-sample/.venv/bin/python main.py
-```
+`uv sync` 会根据 `[tool.uv.sources]` 安装本地 tongagents，并创建 `.venv`，使用仓库中的 `uv.lock` 锁定依赖。
+本示例复用 `../cli-sample/tools/`，因此需要在完整课程仓库内运行。
 
 > ⚠️ `tongagents` 不在公共 PyPI，不能 `pip install tongagents`。必须使用仓库
-> `wheels/` 中的本地 wheel。平台/依赖说明见 [`../wheels/README.md`](../wheels/README.md)。
+> `wheels/` 中的本地 wheel。平台/依赖说明见
+> [`../wheels/README.md`](../wheels/README.md) 和
+> [`../docs/environment.md`](../docs/environment.md)。
 
 ---
 
@@ -114,8 +107,8 @@ export OPENAI_MODEL="gpt-4o-mini"
 ### 启动
 
 ```bash
-cd cli-sample-with-event-soource/src
-python3 main.py
+cd cli-sample-with-event-soource
+uv run python src/main.py
 ```
 
 预期：
@@ -127,8 +120,8 @@ python3 main.py
 ### 快速测试（短间隔）
 
 ```bash
-cd cli-sample-with-event-soource/src
-EVENT_INTERVAL_SECONDS=1 EVENT_MAX_COUNT=2 python3 main.py
+cd cli-sample-with-event-soource
+EVENT_INTERVAL_SECONDS=1 EVENT_MAX_COUNT=2 uv run python src/main.py
 ```
 
 ### 集成测试
@@ -137,10 +130,10 @@ EVENT_INTERVAL_SECONDS=1 EVENT_MAX_COUNT=2 python3 main.py
 
 ```bash
 cd cli-sample-with-event-soource
-python3 test_run.py
+uv run python test_run.py
 ```
 
-它仍然会构造 `AgentHandler`，所以需要先安装 tongagents，并设置一个可用的
+它仍然会构造 `AgentHandler`，所以需要先执行 `uv sync`，并设置一个可用的
 `OPENAI_BASE_URL`（可以是假地址，因为测试不会真正发请求）。
 
 ---

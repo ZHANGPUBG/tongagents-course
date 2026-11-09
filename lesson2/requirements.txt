@@ -1,9 +1,6 @@
-# Lesson 2 依赖清单 (本地 wheel 方式)
-#
-# tongagents + tongagents_cli 不在这里列, 通过 pip install ../wheels/*.whl 装
-# (见 INSTALL.md 第 2 节)
-#
-# 完整安装文档：见 INSTALL.md
+# 本文件为兼容旧工具保留。
+# 课程统一使用 uv 管理环境：先解压 wheels/tongagents-wheels.zip，再执行 `uv sync`。
+# 完整说明见 INSTALL.md 与 pyproject.toml。
 
 # === 测试依赖 ===
 pytest>=7.4.0

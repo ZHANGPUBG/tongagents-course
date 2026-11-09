@@ -8,12 +8,13 @@
 
 ```bash
 cd cli-sample
-source .venv/bin/activate
-python cli_sample.py
+uv sync
+uv run python cli_sample.py
 ```
 
-> 如果还没有环境，先按 [cli-sample/INSTALL.md](../cli-sample/INSTALL.md) 建好 venv
-> 并用本地 wheel 安装 tongagents；不要用 `uv sync`。
+> `uv sync` 会根据 `cli-sample/pyproject.toml` 的 `[tool.uv.sources]` 安装本地
+> tongagents；如果还没有解压 wheel，先执行
+> `unzip -o ../wheels/tongagents-wheels.zip -d ../wheels/`。
 
 输入：
 
@@ -147,8 +148,7 @@ ARXIV = "{http://arxiv.org/schemas/atom}"
 
 ```bash
 cd cli-sample
-source .venv/bin/activate
-python -c "from tools import register_default_tools; from tongagents.tools.tool_manager import ToolManager; register_default_tools(); print(ToolManager.tool_classes.keys())"
+uv run python -c "from tools import register_default_tools; from tongagents.tools.tool_manager import ToolManager; register_default_tools(); print(ToolManager.tool_classes.keys())"
 ```
 
 输出中应该包含 `search_arxiv`。
@@ -183,8 +183,7 @@ tool_identifier_list=["search_arxiv"]
 
 ```bash
 cd cli-sample
-source .venv/bin/activate
-python cli_sample.py
+uv run python cli_sample.py
 ```
 
 建议依次测试：

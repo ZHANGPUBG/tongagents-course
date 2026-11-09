@@ -22,7 +22,7 @@ lesson1/
 ├── README.md              # 本文件（课程主入口）
 ├── INSTALL.md             # 详细安装文档（本地 wheel 方式）
 ├── pyproject.toml         # Python 项目配置（不含 nexus）
-├── requirements.txt       # Python 依赖清单
+├── requirements.txt       # 兼容旧工具（课程使用 uv）
 ├── .env.example           # 环境变量模板
 ├── echo_agent.py          # 主示例：Echo Agent（import tongagents）
 ├── agent_settings_demo.py # AgentSettings 用法详解
@@ -58,30 +58,26 @@ ls wheels/
 > 当前 zip 只含 **Linux x86_64 + Python 3.12** wheel；其他平台 / Python 版本需要维护者
 > 额外提供 `py3-none-any` wheel。
 
-### 2. 安装（5 分钟）
+### 2. 安装（uv）
 
 参考 [INSTALL.md](./INSTALL.md) 详细步骤。TL;DR：
 
 ```bash
+# 安装 uv（如果还没有）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 cd lesson1
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-
-# 装本地 wheel (不走 nexus, 不走 [tool.uv.sources])
-pip install ../wheels/tongagents-*.whl
-pip install ../wheels/tongagents_cli-*.whl
-
-# 装 lesson1 依赖
-pip install -e .
+uv sync
 ```
+
+`uv sync` 会根据 `pyproject.toml` 的 `[tool.uv.sources]` 安装本地 wheel，
+不需要手动 `pip install`。
 
 ### 3. 验证安装
 
 ```bash
-# 验证 SDK + CLI
-python -c "import tongagents; print('tongagents', tongagents.__version__)"
-python -c "from tongagents.agent import Agent, AgentSettings; print('SDK OK')"
+uv run python -c "import tongagents; print('tongagents', tongagents.__version__)"
+uv run python -c "from tongagents.agent import Agent, AgentSettings; print('SDK OK')"
 ```
 
 预期：`tongagents 2.7.65` + `SDK OK`
@@ -90,19 +86,19 @@ python -c "from tongagents.agent import Agent, AgentSettings; print('SDK OK')"
 
 ```bash
 # 4.1 主示例: Echo Agent
-python echo_agent.py
+uv run python echo_agent.py
 
 # 4.2 AgentSettings 用法
-python agent_settings_demo.py
+uv run python agent_settings_demo.py
 
 # 4.3 @node_declare 装饰器 + Workflow
-python node_declare_demo.py
+uv run python node_declare_demo.py
 ```
 
 ### 5. 跑测试
 
 ```bash
-python -m pytest tests/ -v
+uv run python -m pytest tests/ -v
 ```
 
 ---
@@ -193,12 +189,12 @@ print(list(wf.run(iter(["hello", "world"]))))
 
 ```bash
 # 跑全部测试
-python -m pytest tests/ -v
+uv run python -m pytest tests/ -v
 
 # 跑单个测试
-python -m pytest tests/test_echo_agent.py -v
-python -m pytest tests/test_agent_settings.py -v
-python -m pytest tests/test_node_declare.py -v
+uv run python -m pytest tests/test_echo_agent.py -v
+uv run python -m pytest tests/test_agent_settings.py -v
+uv run python -m pytest tests/test_node_declare.py -v
 ```
 
 测试覆盖：
@@ -216,8 +212,9 @@ python -m pytest tests/test_node_declare.py -v
 ### Q: 为什么用本地 wheel 而不是 Nexus？
 
 A: **开发者通常无 BigAI 内网访问权限**。改用本地 wheel 后, 安装流程**不需要 Nexus**，
-也不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / `[tool.uv.sources]` editable 源。
-课程维护者负责构建 + 分发 wheel, 开发者只负责 `pip install ./wheels/*.whl`。
+也不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / 内网 editable 源。
+课程维护者负责构建 + 分发 wheel, 开发者只需要解压 wheel 后执行 `uv sync`；
+`[tool.uv.sources]` 只指向仓库内的本地 wheel。
 
 > 注意：不需要 Nexus ≠ 完全离线。`pydantic / litellm / fastapi / boto3` 等依赖仍会从
 > PyPI（或镜像）下载。
@@ -228,19 +225,20 @@ A: 当前仓库 zip 只提供：
 
 - `cp312-cp312-linux_x86_64.whl` — Linux x86_64 + Python 3.12
 
-macOS / Windows / ARM64 / Python 3.11 或 3.13 需要联系维护者获取 `py3-none-any.whl`
-（当前 zip 中没有）。
+Windows 推荐 WSL2，macOS 推荐 Docker（linux/amd64），详见
+[`../docs/environment.md`](../docs/environment.md)。其他 Python 版本 / ARM64 需要
+维护者提供 `py3-none-any.whl`（当前 zip 中没有）。
 
 ### Q: 我能在 Windows 上跑吗？
 
-A: 当前仓库自带 wheel 不能。需要维护者提供 `py3-none-any.whl` 后，在 Windows 上安装通用
-wheel；否则只能用 Linux x86_64 + Python 3.12。
+A: 推荐使用 **WSL2 + Ubuntu**，在 WSL 里按 Linux 流程运行。安装文档：
+<https://learn.microsoft.com/zh-cn/windows/wsl/install>。
+也可以使用 Docker（linux/amd64），详见 [`../docs/environment.md`](../docs/environment.md)。
 
 ### Q: 怎么升级？
 
 ```bash
-pip install --upgrade ../wheels/tongagents-*.whl
-pip install --upgrade ../wheels/tongagents_cli-*.whl
+uv sync --upgrade
 ```
 
 ---

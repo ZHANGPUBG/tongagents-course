@@ -12,24 +12,31 @@ tongagents_cli-1.8.65-cp312-cp312-linux_x86_64.whl
 tong_etcd_sdk-0.0.11-py3-none-any.whl
 ```
 
-先解压再安装：
+先解压，然后进入任意 lesson 执行 `uv sync`：
 
 ```bash
 cd tongagents-course
 unzip -o wheels/tongagents-wheels.zip -d wheels/
 ls -lh wheels/
+
+cd lesson1
+uv sync
 ```
 
 > ⚠️ `wheels/.gitignore` 会忽略解压出来的 `*.whl`，这是正常的：wheel 文件不重复提交，
-> 统一通过 zip 分发。
+> 统一通过 zip 分发。各 lesson 的 `pyproject.toml` 里 `[tool.uv.sources]` 会指向
+> `../wheels/` 下这些 wheel 文件。
 
 ## 平台与 Python 版本
 
 仓库自带的是 **Linux x86_64 + Python 3.12** 的 `cp312` wheel。
 
 - Linux x86_64 + Python 3.12：可直接使用。
-- macOS / Windows / ARM64 / Python 3.11 或 3.13：当前 zip **没有**可用的
-  `py3-none-any` wheel，需要联系课程维护者获取对应版本。
+- Windows：推荐使用 **WSL2 + Ubuntu**，见
+  <https://learn.microsoft.com/zh-cn/windows/wsl/install>。
+- macOS / ARM64 / Python 3.11 或 3.13：当前 zip **没有**可用的
+  `py3-none-any` wheel。macOS 推荐使用 Docker（linux/amd64），详见
+  [`../docs/environment.md`](../docs/environment.md)。
 - 安装前建议确认：
 
 ```bash

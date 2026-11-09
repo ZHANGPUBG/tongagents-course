@@ -1,7 +1,10 @@
 # Lesson 2 安装文档 — 本地 wheel 方式 (无 Nexus 权限)
 
-> **v0.2.0 重要变更**: 本示例 **不再依赖 BigAI Nexus 私有源**。开发者只需要拿到项目维护者
-> 提供的 2 个本地 wheel 文件, 用 `pip install ./wheels/*.whl` 即可, 完全离线安装。
+> **v0.2.0 重要变更**: 本示例 **不再依赖 BigAI Nexus 私有源**。仓库自带
+> `wheels/tongagents-wheels.zip`，解压后用 `pip install ./wheels/*.whl` 安装即可。
+>
+> ⚠️ “本地 wheel”只表示不需要 Nexus；`pydantic / litellm / fastapi / boto3` 等
+> Python 依赖仍会从 PyPI（或镜像）下载。详见 [`../wheels/README.md`](../wheels/README.md)。
 
 > Lesson 2 复用 Lesson 1 的全部安装流程 + wheel 文件 (同一份 `wheels/` 目录),
 > 因此本节简短描述, 详细步骤见 [../lesson1/INSTALL.md](../lesson1/INSTALL.md)。
@@ -12,10 +15,13 @@
 
 | 项目 | 要求 |
 |---|---|
-| Python | **>= 3.11**（推荐 3.12） |
+| Python | **3.12**（仓库自带 wheel 为 `cp312`） |
 | pip | **>= 21.3**（支持 PEP 517） |
-| 操作系统 | Linux x86_64 / Windows amd64 / macOS |
-| 网络 | **不需要**访问 Nexus, 全部依赖在本地 wheel |
+| 操作系统 | **Linux x86_64**（仓库自带 wheel 为 `linux_x86_64`） |
+| 网络 | 不需要 Nexus；Python 依赖需要 PyPI 或镜像 |
+
+> ⚠️ macOS / Windows / ARM64 / Python 3.11 或 3.13 需要维护者额外提供
+> `py3-none-any` wheel；当前 zip 中没有。
 
 ---
 
@@ -23,6 +29,7 @@
 
 ```bash
 cd tongagents-course    # 仓库根目录
+unzip -o wheels/tongagents-wheels.zip -d wheels/
 ls wheels/
 # 期望看到 tongagents-*.whl + tongagents_cli-*.whl
 ```
@@ -33,7 +40,7 @@ ls wheels/
 
 ```bash
 cd lesson2
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 

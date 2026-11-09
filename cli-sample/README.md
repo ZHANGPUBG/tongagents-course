@@ -7,12 +7,12 @@
 **不调 `.stream()`**, **不依赖 `tongagents-cli`**.
 教学目的: 演示怎么用 tongagents SDK 写一个最小可运行 CLI.
 
-> ⚠️ **v0.4.0 重要变更**: **不再依赖 BigAI Nexus**。改用项目维护者提供的 2 个本地 wheel
+> ⚠️ **v0.4.0 重要变更**: **不再依赖 BigAI Nexus**。改用仓库自带的本地 wheel
 > (`wheels/tongagents-*.whl` + `wheels/tongagents_cli-*.whl`), `pip install` 直接装,
-> 无需任何内网凭据。
+> 无需任何内网凭据（Python 依赖仍需 PyPI/镜像）。
 
 > ⚠️ **依赖变化** (相对 commit 1d5bf25):
->  - 移除 `tongagents-cli>=2.7.20` 依赖
+>  - 移除 `tongagents-cli` 包依赖
 >  - tongagents SDK 已经去掉对 tongagents-cli 的依赖, cli-sample 也跟着简化
 >  - SDK 默认 11 个工具的实现直接复制到本地 `cli-sample/tools/` 子包
 >  - **保留** 6 个核心 OS 工具 (read_file / write_file / edit_file / bash / glob / grep)
@@ -22,13 +22,13 @@
 
 ## 依赖
 
-- Python >= 3.11
-- [tongagents SDK 2.7.21](./wheels/) (从 `../wheels/tongagents-*.whl` 本地装)
-- [tongagents_cli 1.8.22](./wheels/) (从 `../wheels/tongagents_cli-*.whl` 本地装, SDK 间接依赖)
+- Python 3.12（仓库自带 wheel 为 `cp312`）
+- [tongagents SDK 2.7.65](../wheels/)（从 `../wheels/tongagents-*.whl` 本地装）
+- [tongagents_cli 1.8.65](../wheels/)（从 `../wheels/tongagents_cli-*.whl` 本地装，SDK 间接依赖）
 - `python-dotenv` — 读 `.env`
 
-> ❌ **不依赖 `tongagents-cli` 包** (但要装 `tongagents_cli` wheel 给 SDK)
-> ✅ **不依赖 BigAI Nexus** (本地 wheel 即可)
+> ❌ **不依赖 `tongagents-cli` 包**（但要装 `tongagents_cli` wheel 给 SDK）
+> ✅ **不依赖 BigAI Nexus**（本地 wheel 即可；Python 依赖仍需 PyPI/镜像）
 
 ---
 
@@ -36,15 +36,17 @@
 
 ```bash
 # 1. clone
-git clone git@github.com:temp-bigai/tongagents-course.git
-cd tongagents-course/cli-sample
+git clone https://github.com/temp-bigai/tongagents-course.git
+cd tongagents-course
 
-# 2. 准备 wheels/ 目录 (从项目维护者获取)
-ls ../wheels/
-# 期望看到 tongagents-*.whl + tongagents_cli-*.whl (各 1 个或 2 个)
+# 2. 解压仓库自带的 wheel
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+ls wheels/
+# 期望看到 tongagents-*.whl + tongagents_cli-*.whl
 
-# 3. 创建 venv
-python3 -m venv .venv
+# 3. 创建 venv (仓库自带 wheel 为 cp312，需 Python 3.12)
+cd cli-sample
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 
@@ -56,26 +58,29 @@ pip install ../wheels/tongagents_cli-*.whl
 pip install -e .
 ```
 
-完整步骤 + 故障排查见 [INSTALL.md](./INSTALL.md)。
+完整步骤 + 故障排查见 [INSTALL.md](./INSTALL.md)，平台/依赖说明见
+[`../wheels/README.md`](../wheels/README.md)。
 
-> 🍎 **macOS / ARM64 / 其他 Python 版本**: 用 `py3-none-any.whl` 通用 wheel。
+> 🍎 **macOS / ARM64 / 其他 Python 版本**: 当前 zip 没有 `py3-none-any` wheel，
+> 需要联系维护者获取。
 
 ---
 
 ## 用真实 LLM 跑通
 
 ```bash
-# 1. 复制 Tong-Agent 的 .env (含 OPENAI_API_KEY + BASE_URL + MODEL)
-cp ~/work/codework/tong_agents/Tong-Agent/.env .env
-
-# (或) 自己填 OPENAI_* 三个变量
-export OPENAI_API_KEY=sk-xxx
-export OPENAI_BASE_URL=http://your-llm-endpoint/v1
-export OPENAI_MODEL=your-model-name
+# 1. 复制模板并填写三项
+cp .env.example .env
+# OPENAI_API_KEY=sk-xxx
+# OPENAI_BASE_URL=http://your-llm-endpoint/v1
+# OPENAI_MODEL=your-model-name
 
 # 2. 跑
 python cli_sample.py
 ```
+
+> ⚠️ `OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL` 三项都必须设置。
+> 只填 API Key 时 SDK 会报 `service url is required but not given`。
 
 > ⚠️ **关键陷阱**: cli-sample 用 `load_dotenv(..., override=True)`,
 > 因为 shell 里常设了 `OPENAI_API_KEY` / `OPENAI_BASE_URL` (例如指向
@@ -208,7 +213,7 @@ cli-sample/
 │   ├── bash_tool.py
 │   ├── glob_tool.py
 │   └── grep_tool.py
-├── pyproject.toml       # 依赖: tongagents==2.7.20 + python-dotenv (无 tongagents-cli)
+├── pyproject.toml       # 依赖: python-dotenv；tongagents 从 ../wheels 本地装
 ├── README.md            # 本文件
 └── .env.example         # API key + BASE_URL + MODEL 配置模板
 ```
@@ -238,7 +243,8 @@ print('tools:', sorted(ToolManager.tool_classes.keys()))
 ### 3. REPL 端到端测试 (需 .env)
 
 ```bash
-cp ~/work/codework/tong_agents/Tong-Agent/.env .env
+cp .env.example .env
+# 填写 OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL
 printf '你好\n列出当前目录\n读 README.md\nexit\n' | python cli_sample.py
 ```
 
@@ -267,4 +273,4 @@ printf '你好\n列出当前目录\n读 README.md\nexit\n' | python cli_sample.p
 
 - [Tong-Agent](https://github.com/temp-bigai/Tong-Agent) - 完整 SDK + CLI
 - [tongagents-course](https://github.com/temp-bigai/tongagents-course) - 课程仓库 (本仓库)
-- [tongagents SDK 2.7.20](https://pypi.org/project/tongagents/2.7.20/) - 核心 SDK (Agent 抽象类 + StatelessReactAgent + WorkflowWithMemory)
+- [tongagents SDK 2.7.65](https://github.com/temp-bigai/Tong-Agent) - 核心 SDK (Agent 抽象类 + StatelessReactAgent + WorkflowWithMemory)；该包不在公共 PyPI，需使用本仓库 `wheels/` 中的本地 wheel

@@ -8,8 +8,12 @@
 
 ```bash
 cd cli-sample
-uv run python cli_sample.py
+source .venv/bin/activate
+python cli_sample.py
 ```
+
+> 如果还没有环境，先按 [cli-sample/INSTALL.md](../cli-sample/INSTALL.md) 建好 venv
+> 并用本地 wheel 安装 tongagents；不要用 `uv sync`。
 
 输入：
 
@@ -143,7 +147,8 @@ ARXIV = "{http://arxiv.org/schemas/atom}"
 
 ```bash
 cd cli-sample
-uv run python -c "from tools import register_default_tools; from tongagents.tools.tool_manager import ToolManager; register_default_tools(); print(ToolManager.tool_classes.keys())"
+source .venv/bin/activate
+python -c "from tools import register_default_tools; from tongagents.tools.tool_manager import ToolManager; register_default_tools(); print(ToolManager.tool_classes.keys())"
 ```
 
 输出中应该包含 `search_arxiv`。
@@ -178,7 +183,8 @@ tool_identifier_list=["search_arxiv"]
 
 ```bash
 cd cli-sample
-uv run python cli_sample.py
+source .venv/bin/activate
+python cli_sample.py
 ```
 
 建议依次测试：

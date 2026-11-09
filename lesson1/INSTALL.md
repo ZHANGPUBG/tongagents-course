@@ -1,7 +1,10 @@
 # Lesson 1 安装文档 — 本地 wheel 方式 (无 Nexus 权限)
 
-> **v0.2.0 重要变更**: 本示例 **不再依赖 BigAI Nexus 私有源**。开发者只需要拿到项目维护者
-> 提供的 2 个本地 wheel 文件, 用 `pip install ./wheels/*.whl` 即可, 完全离线安装。
+> **v0.2.0 重要变更**: 本示例 **不再依赖 BigAI Nexus 私有源**。仓库自带
+> `wheels/tongagents-wheels.zip`，解压后用 `pip install ./wheels/*.whl` 安装即可。
+>
+> ⚠️ “本地 wheel”只表示不需要 Nexus；`pydantic / litellm / fastapi / boto3` 等
+> Python 依赖仍会从 PyPI（或镜像）下载。详见 [`../wheels/README.md`](../wheels/README.md)。
 
 ---
 
@@ -9,35 +12,39 @@
 
 | 项目 | 要求 |
 |---|---|
-| Python | **>= 3.11**（推荐 3.12） |
+| Python | **3.12**（仓库自带 wheel 为 `cp312`） |
 | pip | **>= 21.3**（支持 PEP 517） |
-| 操作系统 | Linux x86_64 / Windows amd64 / macOS |
-| 网络 | **不需要**访问 Nexus, 全部依赖在本地 wheel |
+| 操作系统 | **Linux x86_64**（仓库自带 wheel 为 `linux_x86_64`） |
+| 网络 | 不需要 Nexus；Python 依赖需要 PyPI 或镜像 |
 
 > ✅ **不需要** pip.conf / Nexus 凭据 / `[tool.uv.sources]` editable
+>
+> ⚠️ macOS / Windows / ARM64 / Python 3.11 或 3.13 需要维护者额外提供
+> `py3-none-any` wheel；当前 zip 中没有。
 
 ---
 
 ## 1. 准备 wheels 目录
 
-从项目维护者获取 wheels 文件, 放到**仓库根目录**的 `wheels/` 下:
+仓库根目录已自带 `wheels/tongagents-wheels.zip`，先解压：
 
 ```bash
 cd tongagents-course    # 仓库根目录
-mkdir -p wheels
-# 把维护者给的 wheel 复制到 wheels/
-cp /path/to/tongagents-*.whl wheels/
-cp /path/to/tongagents_cli-*.whl wheels/
+
+unzip -o wheels/tongagents-wheels.zip -d wheels/
 
 ls -lh wheels/
 # 期望看到:
-# tongagents-2.7.21-cp312-cp312-linux_x86_64.whl   (16M, 推荐)
-# tongagents-2.7.21-py3-none-any.whl                (38M, 跨平台)
-# tongagents_cli-1.8.22-cp312-cp312-linux_x86_64.whl (5.1M, 推荐)
-# tongagents_cli-1.8.22-py3-none-any.whl            (7.8M, 跨平台)
+# tongagents-2.7.65-cp312-cp312-linux_x86_64.whl      (17M)
+# tongagents_cli-1.8.65-cp312-cp312-linux_x86_64.whl  (5.0M)
+
+# 如果维护者单独发了 whl，也可以直接复制到 wheels/
+# cp /path/to/tongagents-*.whl wheels/
+# cp /path/to/tongagents_cli-*.whl wheels/
 ```
 
-> 💡 **优先用 `cp312-cp312-linux_x86_64.whl`**（小）；macOS / ARM64 / 其他 Python 版本请用 `py3-none-any.whl`（含 C 源码）。
+> 💡 当前 zip 只提供 `cp312-cp312-linux_x86_64`。其他平台 / Python 版本请联系维护者获取
+> 对应的 `py3-none-any` wheel。
 
 ---
 
@@ -51,7 +58,7 @@ ls -lh wheels/
 
 ```bash
 cd lesson1
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate          # Linux / macOS
 # .venv\Scripts\activate           # Windows PowerShell
 
@@ -102,7 +109,7 @@ python node_declare_demo.py
 预期输出:
 
 ```
-tongagents 2.7.21
+tongagents 2.7.65
 All SDK core APIs importable.
 AgentSettings fields: ['name', 'description', 'capabilities', 'model', 'temperature', 'max_iterations', 'verbose', 'topic']
 ```
@@ -140,7 +147,7 @@ pip uninstall tongagents tongagents-cli tongagents-lesson1 -y
 
 ### 8.1 wheel 与本地 Python ABI 不匹配
 
-错误: `tongagents-2.7.21-cp312-cp312-linux_x86_64.whl is not a supported wheel on this platform.`
+错误: `tongagents-2.7.65-cp312-cp312-linux_x86_64.whl is not a supported wheel on this platform.`
 
 解决:
 
@@ -148,10 +155,12 @@ pip uninstall tongagents tongagents-cli tongagents-lesson1 -y
 # 检查 Python 版本
 python --version   # 期望 3.12.x
 
-# 如果是 3.11 / 3.13 / ARM64 / macOS, 用通用 wheel
+# 当前仓库 zip 没有 py3-none-any wheel。
+# 如果是 3.11 / 3.13 / ARM64 / macOS，请联系维护者获取对应版本的通用 wheel：
+#   tongagents-<version>-py3-none-any.whl
+#   tongagents_cli-<version>-py3-none-any.whl
 pip uninstall tongagents tongagents-cli -y
-pip install ../wheels/tongagents-2.7.21-py3-none-any.whl
-pip install ../wheels/tongagents_cli-1.8.22-py3-none-any.whl
+# 然后安装维护者提供的 py3-none-any wheel
 ```
 
 ### 8.2 `ModuleNotFoundError: No module named 'tongagents'`
@@ -163,7 +172,8 @@ pip install ../wheels/tongagents_cli-1.8.22-py3-none-any.whl
 ### 8.3 缺依赖 / `ImportError`
 
 lesson1 自身依赖（pytest / python-dotenv）通过 `pip install -e .` 装。
-tongagents 的运行时依赖（pydantic / litellm / fastapi 等）随 wheel 一起装, 无需手动。
+tongagents 的运行时依赖（pydantic / litellm / fastapi 等）会在安装 wheel 时从 PyPI
+（或镜像）自动解析安装；如果网络不可用，需要提前准备依赖 wheelhouse。
 
 ---
 
@@ -171,7 +181,7 @@ tongagents 的运行时依赖（pydantic / litellm / fastapi 等）随 wheel 一
 
 | 方案 | 优点 | 缺点 |
 |---|---|---|
-| **本地 wheel (推荐)** | 离线 / 不需要 Nexus 凭据 / 跨环境一致 / 版本可控 | 需维护者分发 wheel |
+| **本地 wheel (推荐)** | 不需要 Nexus 凭据 / 跨环境一致 / 版本可控 | 需维护者分发 wheel；依赖仍需 PyPI |
 | Nexus pip.conf | 自动解析依赖 | 需要内网 + 凭据 + 写 ~/.config/pip/pip.conf |
 | `[tool.uv.sources]` editable | 调试方便 | 需要 uv + 内网 + 编辑源 |
 

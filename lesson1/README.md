@@ -35,7 +35,8 @@ lesson1/
 ```
 
 > 💡 **`wheels/` 目录**: 本课程 3 个示例（`cli-sample/`、`lesson1/`、`lesson2/`）共用同一份
-> wheel 文件, 放在**仓库根目录**的 `wheels/` 下。开发者 clone 后从项目维护者获取。
+> wheel 文件, 放在**仓库根目录**的 `wheels/` 下。仓库自带 `wheels/tongagents-wheels.zip`，
+> 先解压即可；平台/依赖说明见 [`../wheels/README.md`](../wheels/README.md)。
 
 ---
 
@@ -44,14 +45,18 @@ lesson1/
 ### 1. 准备 wheels（一次性）
 
 ```bash
-# 从项目维护者获取 wheel 文件, 放到仓库根目录 wheels/
 cd tongagents-course
+# 仓库自带 zip，先解压
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+
 ls wheels/
 # 期望看到:
-# tongagents-2.7.21-cp312-cp312-linux_x86_64.whl
-# tongagents_cli-1.8.22-cp312-cp312-linux_x86_64.whl
-# (或 py3-none-any 通用 wheel)
+# tongagents-2.7.65-cp312-cp312-linux_x86_64.whl
+# tongagents_cli-1.8.65-cp312-cp312-linux_x86_64.whl
 ```
+
+> 当前 zip 只含 **Linux x86_64 + Python 3.12** wheel；其他平台 / Python 版本需要维护者
+> 额外提供 `py3-none-any` wheel。
 
 ### 2. 安装（5 分钟）
 
@@ -59,7 +64,7 @@ ls wheels/
 
 ```bash
 cd lesson1
-python3 -m venv .venv
+python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 
@@ -79,7 +84,7 @@ python -c "import tongagents; print('tongagents', tongagents.__version__)"
 python -c "from tongagents.agent import Agent, AgentSettings; print('SDK OK')"
 ```
 
-预期：`tongagents 2.7.21` + `SDK OK`
+预期：`tongagents 2.7.65` + `SDK OK`
 
 ### 4. 跑 3 个示例
 
@@ -210,22 +215,26 @@ python -m pytest tests/test_node_declare.py -v
 
 ### Q: 为什么用本地 wheel 而不是 Nexus？
 
-A: **开发者通常无 BigAI 内网访问权限**。改用本地 wheel 后, 整个安装流程**完全离线**,
-不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / `[tool.uv.sources]` editable 源。
+A: **开发者通常无 BigAI 内网访问权限**。改用本地 wheel 后, 安装流程**不需要 Nexus**，
+也不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / `[tool.uv.sources]` editable 源。
 课程维护者负责构建 + 分发 wheel, 开发者只负责 `pip install ./wheels/*.whl`。
+
+> 注意：不需要 Nexus ≠ 完全离线。`pydantic / litellm / fastapi / boto3` 等依赖仍会从
+> PyPI（或镜像）下载。
 
 ### Q: wheel 与 Python 版本不匹配怎么办？
 
-A: 默认提供 2 套 wheel:
+A: 当前仓库 zip 只提供：
 
-- `cp312-cp312-linux_x86_64.whl` (推荐, 小) — Linux x86_64 + Python 3.12
-- `py3-none-any.whl` (跨平台, 大) — 任何平台 + Python >= 3.11
+- `cp312-cp312-linux_x86_64.whl` — Linux x86_64 + Python 3.12
 
-macOS / ARM64 / 其他 Python 版本请用 `py3-none-any.whl`。
+macOS / Windows / ARM64 / Python 3.11 或 3.13 需要联系维护者获取 `py3-none-any.whl`
+（当前 zip 中没有）。
 
 ### Q: 我能在 Windows 上跑吗？
 
-A: 可以。Linux wheel 是 `linux_x86_64`, Windows 需用 `py3-none-any.whl` (含 C 源码)。
+A: 当前仓库自带 wheel 不能。需要维护者提供 `py3-none-any.whl` 后，在 Windows 上安装通用
+wheel；否则只能用 Linux x86_64 + Python 3.12。
 
 ### Q: 怎么升级？
 

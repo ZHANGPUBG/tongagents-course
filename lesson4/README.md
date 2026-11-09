@@ -62,12 +62,19 @@ lesson4/
 
 ## 第 0 步：确认起点
 
-- 仓库根目录 `wheels/` 已放入维护者提供的 tongagents wheel（流程见 `lesson1/INSTALL.md`，本课不需要 tongagents_cli）；
-- 初始化本课环境（首次使用执行一次，与 lesson1 同一套流程）：
+- 仓库根目录 `wheels/` 已自带 `tongagents-wheels.zip`；先解压（流程见
+  `lesson1/INSTALL.md`，本课不需要 tongagents_cli）：
+
+```bash
+cd tongagents-course
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+```
+
+- 初始化本课环境（首次使用执行一次，与 lesson1 同一套流程；需要 Python 3.12）：
 
 ```bash
 cd lesson4
-python3 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
 pip install ../wheels/tongagents-*.whl   # 先装 wheel (SDK)
 pip install -e .                         # 再装本课自身依赖 (python-dotenv)
 ```
@@ -116,6 +123,9 @@ print(out, '| 磁盘上真实存在:', p.exists())
 ```bash
 cd lesson4 && python check_homework.py
 ```
+
+> `check_homework.py` 会自动设置 dummy `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL`，
+> 不需要真实 Key 或网络；FakeLLM 不会发请求。
 
 8 项全过即达标。test_07/08 是**框架级终验**：构造真实的 `StatelessReactAgent`，把它的 `llm` 换成 FakeLLM（脚本化假模型，接口对齐 SDK 的 `.request`），再走 `step()`——SDK 的真循环会解析 tool_call、从 ToolManager 找到你注册的工具、**真实执行**、把结果回填进下一轮请求。模型"说要写文件"，文件就必须真的出现在磁盘上——这就是"不得伪造工具调用"的可验证形式。
 

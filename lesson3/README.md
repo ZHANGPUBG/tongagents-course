@@ -31,11 +31,18 @@
 
 ```bash
 cd cli-sample
+# 首次使用先按 cli-sample/INSTALL.md 建好环境：
+#   unzip -o ../wheels/tongagents-wheels.zip -d ../wheels/
+#   python3.12 -m venv .venv && source .venv/bin/activate
+#   pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
+#   pip install -e .
 cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL
-uv sync
-uv run python cli_sample.py
+python cli_sample.py
 ```
+
+> ⚠️ 不要用 `uv sync`：`cli-sample/pyproject.toml` 不含 tongagents，`uv sync`
+> 会把通过本地 wheel 装好的 tongagents 删掉。本课程统一使用上面的 venv + pip 流程。
 
 输入一个普通问题和一个文件问题，确认同步回答和工具调用都正常。
 
@@ -115,7 +122,8 @@ print()
 
 ```bash
 cd cli-sample
-uv run python cli_sample.py
+source .venv/bin/activate
+python cli_sample.py
 ```
 
 依次检查：

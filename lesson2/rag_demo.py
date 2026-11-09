@@ -181,7 +181,7 @@ class RAGAgent(Agent):
 
 DEFAULT_KB = [
     "TongAgents is a multi-agent framework by BigAI.",
-    "TongAgents 2.7.19 ships as a Cython-encrypted wheel from BigAI Nexus.",
+    "TongAgents 2.7.65 ships as a Cython-compiled wheel distributed with the course.",
     "CoT stands for Chain-of-Thought, a prompting technique that improves reasoning.",
     "RAG stands for Retrieval-Augmented Generation, combining retrieval with generation.",
     "Self-Consistency samples multiple CoT paths and votes for the most consistent answer.",

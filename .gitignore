@@ -22,9 +22,7 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
-# uv (本课程不再使用 uv, 移除以避免误用)
-uv.lock
-.python-version
+# uv: uv.lock 和 .python-version 需要提交，保证各课程环境一致
 
 # OS noise
 .DS_Store

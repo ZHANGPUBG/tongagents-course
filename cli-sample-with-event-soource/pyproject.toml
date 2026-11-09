@@ -1,0 +1,19 @@
+[project]
+name = "tongagents-cli-sample-event-source"
+version = "0.5.0"
+description = "TongAgents EventSource + Agent 集成示例（v5）"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # tongagents 从 ../wheels/ 本地 wheel 安装（不走 Nexus）
+    "tongagents==2.7.65",
+    # OpenAI 兼容客户端（tongagents 已传递依赖，这里显式列出）
+    "openai>=1.0.0",
+]
+
+[tool.uv.sources]
+tongagents = { path = "../wheels/tongagents-2.7.65-cp312-cp312-linux_x86_64.whl" }
+
+[tool.uv]
+# 本示例是脚本目录，不作为 Python 包安装
+package = false

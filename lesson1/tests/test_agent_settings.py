@@ -30,7 +30,8 @@ def test_agent_settings_defaults():
     assert s.capabilities == []
     assert s.model == "gpt-4"
     assert s.temperature == 0.7
-    assert s.max_iterations == 10
+    # 当前仓库自带 wheel (tongagents 2.7.65) 的默认值是 300
+    assert s.max_iterations == 300
     assert s.verbose is False
     assert s.topic == "general"
 

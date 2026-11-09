@@ -54,20 +54,26 @@ lesson6/
 ## 第 0 步：确认起点
 
 - 已完成 Lesson 5：`cli-sample/tools/` 里有 `arxiv_search_tool.py`，且 `search_arxiv` 已注册（`tools/__init__.py` 的 `_DEFAULT_TOOL_CLASSES`）；
-- 仓库根目录 `wheels/` 已放入维护者提供的 tongagents wheel（流程见 `lesson1/INSTALL.md`，本课不需要 tongagents_cli）；
-- 初始化本课环境（首次使用执行一次，与 lesson1 同一套流程）：
+- 仓库根目录 `wheels/` 已自带 `tongagents-wheels.zip`；先解压（流程见
+  `lesson1/INSTALL.md`，本课不需要 tongagents_cli）：
 
 ```bash
-cd lesson6
-python3 -m venv .venv && source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl   # 先装 wheel (SDK)
-pip install -e .                         # 再装本课自身依赖 (python-dotenv)
+cd tongagents-course
+unzip -o wheels/tongagents-wheels.zip -d wheels/
 ```
 
-> 装了 uv 的同学可以等价使用：`uv venv && source .venv/bin/activate`，
-> `uv pip install ../wheels/tongagents-*.whl && uv pip install -e .`，
-> 运行时用 `python ...`（已激活）或 `uv run --no-sync python ...`（未激活）。
-> 顺序很重要：先 wheel 再 `-e .`，否则 pip 会去公网找 tongagents 而失败。
+- 初始化本课环境（首次使用执行一次，与 lesson1 同一套流程；需要 Python 3.12）：
+
+```bash
+# 安装 uv（如果还没有）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+cd lesson6
+uv sync
+```
+
+`uv sync` 会根据 `pyproject.toml` 的 `[tool.uv.sources]` 安装本地 tongagents，
+并创建 `.venv`，使用仓库中的 `uv.lock` 锁定依赖。
 
 - `.env` 沿用 cli-sample 的那份（`cli_memory_sample.py` 会自动加载 `../cli-sample/.env`）。
 
@@ -86,7 +92,7 @@ pip install -e .                         # 再装本课自身依赖 (python-dote
 打开 `memory/file_memory.py`，按注释提示组装记录 dict 并调用 `_append_record`。完成后先手动验证：
 
 ```bash
-cd lesson6 && python -c "
+cd lesson6 && uv run python -c "
 from tongagents.agents.context_window.base import ChatHistoryUnit
 from tongagents.agents.llm.messages import UserPromptMessage, ModelOutputMessage, ModelTextMessage
 from memory import FileMemory
@@ -110,7 +116,7 @@ print(open('/tmp/t.jsonl').read())
 ## 第 5 步：跑自测
 
 ```bash
-cd lesson6 && python check_memory.py
+cd lesson6 && uv run python check_memory.py
 ```
 
 8 项全过即达到框架契约，其中 `test_08` 是框架级终验：用真实的 `SlidingWindowRAGContextWindowManager` 走一遍"落库 → 新实例恢复 → 上下文里有上一篇综述"，全程不需要 LLM。建议再做一件事：故意把 `get_messages` 改成忽略 `config`，重跑自测观察哪几项挂掉——体会类型还原为什么是红线。
@@ -126,7 +132,7 @@ cd lesson6 && python check_memory.py
 运行：
 
 ```bash
-cd lesson6 && python cli_memory_sample.py
+cd lesson6 && uv run python cli_memory_sample.py
 ```
 
 启动横幅会显示记忆文件路径与"已恢复 N 轮对话"——第二次启动时 N 应大于 0。

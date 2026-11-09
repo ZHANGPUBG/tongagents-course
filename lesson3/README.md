@@ -30,12 +30,18 @@
 先不要改代码，确认基线可以运行：
 
 ```bash
+cd tongagents-course
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+
 cd cli-sample
+uv sync
 cp .env.example .env
 # 编辑 .env，填入 OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL
-uv sync
 uv run python cli_sample.py
 ```
+
+> `cli-sample/pyproject.toml` 已通过 `[tool.uv.sources]` 指向本地 wheel，
+> `uv sync` 会自动安装 tongagents，不会再从公共 PyPI 查找或删除它。
 
 输入一个普通问题和一个文件问题，确认同步回答和工具调用都正常。
 

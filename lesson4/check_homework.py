@@ -30,6 +30,9 @@ from pathlib import Path
 #  永远不会真正发请求)
 os.environ.setdefault("OPENAI_API_KEY", "sk-dummy-lesson4-check")
 os.environ.setdefault("OPENAI_MODEL", "dummy-model")
+# 当前 SDK 在构造 StatelessReactAgent 时要求 service url。
+# 这里给一个不可达的假地址即可：FakeLLM 会顶替真实 LLM，不会发请求。
+os.environ.setdefault("OPENAI_BASE_URL", "http://127.0.0.1:9/v1")
 
 _LESSON4_DIR = Path(__file__).resolve().parent
 if str(_LESSON4_DIR) not in sys.path:
@@ -295,7 +298,8 @@ class HomeworkTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main(verbosity=2, exit=False)
+    result = unittest.main(verbosity=2, exit=False)
     print()
     print(f"工具: {len(_SIX_TOOLS & set(ToolManager.tool_classes))}/6 已注册进 ToolManager")
     print("全部通过后, 配好 .env 运行 python cli_file_sample.py 接真模型 (README 第 8 步)")
+    raise SystemExit(0 if result.result.wasSuccessful() else 1)

@@ -8,8 +8,13 @@
 
 ```bash
 cd cli-sample
+uv sync
 uv run python cli_sample.py
 ```
+
+> `uv sync` 会根据 `cli-sample/pyproject.toml` 的 `[tool.uv.sources]` 安装本地
+> tongagents；如果还没有解压 wheel，先执行
+> `unzip -o ../wheels/tongagents-wheels.zip -d ../wheels/`。
 
 输入：
 

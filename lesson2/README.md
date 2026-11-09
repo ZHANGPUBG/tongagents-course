@@ -27,7 +27,7 @@ lesson2/
 ├── README.md                 # 本文件（课程主入口）
 ├── INSTALL.md                # 详细安装文档（本地 wheel 方式）
 ├── pyproject.toml            # Python 项目配置（不含 nexus）
-├── requirements.txt          # Python 依赖清单
+├── requirements.txt          # 兼容旧工具（课程使用 uv）
 ├── .env.example              # 环境变量模板
 ├── .gitignore                # Python/venv/db 忽略
 ├── prompt_template.py        # PromptTemplate 抽象（基础）
@@ -48,7 +48,8 @@ lesson2/
 ```
 
 > 💡 **`wheels/` 目录**: 本课程 3 个示例（`cli-sample/`、`lesson1/`、`lesson2/`）共用同一份
-> wheel 文件, 放在**仓库根目录**的 `wheels/` 下。
+> wheel 文件, 放在**仓库根目录**的 `wheels/` 下。仓库自带 `wheels/tongagents-wheels.zip`，
+> 先解压即可；平台/依赖说明见 [`../wheels/README.md`](../wheels/README.md)。
 
 ---
 
@@ -57,56 +58,53 @@ lesson2/
 ### 1. 准备 wheels（一次性）
 
 ```bash
-# 从项目维护者获取 wheel 文件, 放到仓库根目录 wheels/
 cd tongagents-course
-ls ../wheels/
-# 期望看到 tongagents-*.whl + tongagents_cli-*.whl (各 1 个或 2 个)
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+ls wheels/
+# 期望看到 tongagents-*.whl + tongagents_cli-*.whl
 ```
 
-### 2. 安装（5 分钟）
+### 2. 安装（uv）
 
 参考 [INSTALL.md](./INSTALL.md) 详细步骤。TL;DR：
 
 ```bash
+# 安装 uv（如果还没有）
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 cd lesson2
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-
-# 装本地 wheel (不走 nexus, 不走 [tool.uv.sources])
-pip install ../wheels/tongagents-*.whl
-pip install ../wheels/tongagents_cli-*.whl
-
-# 装 lesson2 依赖
-pip install -e .
+uv sync
 ```
+
+`uv sync` 会根据 `pyproject.toml` 的 `[tool.uv.sources]` 安装本地 wheel，
+不需要手动 `pip install`。
 
 ### 3. 跑 6 个示例
 
 ```bash
 # 3.1 PromptTemplate 基础
-python prompt_template.py
+uv run python prompt_template.py
 
 # 3.2 CoT Demo（Echo → CoT 升级）
-python cot_demo.py
+uv run python cot_demo.py
 
 # 3.3 Self-Consistency（多路径采样 + 投票）
-python cot_self_consistency.py
+uv run python cot_self_consistency.py
 
 # 3.4 ToT（树形搜索）
-python tot_demo.py
+uv run python tot_demo.py
 
 # 3.5 RAG（检索 + 生成）
-python rag_demo.py
+uv run python rag_demo.py
 
 # 3.6 CoT Prompt Agent（PPT Slide 43）
-python cot_prompt_agent.py
+uv run python cot_prompt_agent.py
 ```
 
 ### 4. 跑测试
 
 ```bash
-python -m pytest tests/ -v
+uv run python -m pytest tests/ -v
 ```
 
 ---
@@ -227,7 +225,7 @@ result = agent.step("A train travels 60 mph for 2 hours. How far?")
 ## 🧪 测试覆盖
 
 ```bash
-$ python -m pytest tests/ -v
+$ uv run python -m pytest tests/ -v
 ```
 
 | 测试文件 | 覆盖范围 |
@@ -282,9 +280,12 @@ Q → [检索 top-k 文档] → context + Q → LLM → A
 
 ### Q: 为什么用本地 wheel 而不是 Nexus？
 
-A: **开发者通常无 BigAI 内网访问权限**。改用本地 wheel 后, 整个安装流程**完全离线**,
-不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / `[tool.uv.sources]` editable 源。
-课程维护者负责构建 + 分发 wheel, 开发者只负责 `pip install ./wheels/*.whl`。
+A: **开发者通常无 BigAI 内网访问权限**。改用本地 wheel 后, 安装流程**不需要 Nexus**，
+也不依赖 Nexus 凭据 / `~/.config/pip/pip.conf` / `[tool.uv.sources]` editable 源。
+课程维护者负责构建 + 分发 wheel, 开发者只需要解压 wheel 后执行 `uv sync`。
+
+> 注意：不需要 Nexus ≠ 完全离线。`pydantic / litellm / fastapi / boto3` 等依赖仍会从
+> PyPI（或镜像）下载。
 
 ### Q: PromptTemplate 一定要 dataclass 吗？
 

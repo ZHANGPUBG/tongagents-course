@@ -6,62 +6,71 @@
 
 ---
 
-## 🚀 快速开始（开发者，本地 wheel 方式）
+## 🚀 快速开始（uv 管理环境）
 
-> **v0.2.0 重要变更**: 本课程**不依赖 BigAI Nexus 内网**。开发者只需要拿到项目维护者
-> 提供的 2 个本地 wheel 文件, 用 `pip install ./wheels/*.whl` 即可, 完全离线安装。
+本课程统一使用 [uv](https://docs.astral.sh/uv/) 管理 Python 环境。每个示例目录都有
+自己的 `pyproject.toml`，依赖中的 TongAgents SDK 指向仓库根目录 `wheels/` 下的本地
+wheel，因此 `uv sync` 可以直接完成安装。
 
-### 一次性准备 wheels 目录
+> **平台说明**：仓库自带 wheel 是 **Linux x86_64 + Python 3.12**。
+> Windows 请使用 **WSL2**，macOS 请使用 **Docker（linux/amd64）**。
+> 详细步骤见 [`docs/environment.md`](docs/environment.md)。
+>
+> - Windows WSL2 安装文档：<https://learn.microsoft.com/zh-cn/windows/wsl/install>
+> - uv 安装文档：<https://docs.astral.sh/uv/getting-started/installation/>
+
+### 0. 安装 uv
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv --version
+```
+
+### 1. 解压本地 wheel
 
 ```bash
 cd tongagents-course    # 仓库根目录
-mkdir -p wheels
-cp /path/to/tongagents-*.whl wheels/
-cp /path/to/tongagents_cli-*.whl wheels/
-
+unzip -o wheels/tongagents-wheels.zip -d wheels/
 ls -lh wheels/
-# 期望看到 (优先 cp312-cp312-linux_x86_64 小包):
-# tongagents-2.7.21-cp312-cp312-linux_x86_64.whl       (16M, Linux x86_64 推荐)
-# tongagents_cli-1.8.22-cp312-cp312-linux_x86_64.whl   (5.1M, Linux x86_64 推荐)
-# (可选) tongagents-2.7.21-py3-none-any.whl            (38M, 跨平台)
-# (可选) tongagents_cli-1.8.22-py3-none-any.whl        (7.8M, 跨平台)
 ```
 
-### 跑任一示例
+### 2. 跑任一示例
 
 ```bash
 # 方式 A: cli-sample (REPL + 6 个本地工具)
 cd cli-sample
-python3 -m venv .venv && source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
-pip install -e .
-python cli_sample.py
+uv sync
+cp .env.example .env   # 填写 OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL
+uv run python cli_sample.py
 
 # 方式 B: lesson1 (3 个示例 + 32 测试)
+cd ..
 cd lesson1
-python3 -m venv .venv && source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
-pip install -e .
-python echo_agent.py
-python agent_settings_demo.py
-python node_declare_demo.py
-python -m pytest tests/ -v
+uv sync
+uv run python echo_agent.py
+uv run python agent_settings_demo.py
+uv run python node_declare_demo.py
+uv run python -m pytest tests/ -v
 
 # 方式 C: lesson2 (6 个示例 + 87 测试)
+cd ..
 cd lesson2
-python3 -m venv .venv && source .venv/bin/activate
-pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
-pip install -e .
-python prompt_template.py
-python cot_demo.py
-python cot_self_consistency.py
-python tot_demo.py
-python rag_demo.py
-python cot_prompt_agent.py
-python -m pytest tests/ -v
+uv sync
+uv run python prompt_template.py
+uv run python cot_demo.py
+uv run python cot_self_consistency.py
+uv run python tot_demo.py
+uv run python rag_demo.py
+uv run python cot_prompt_agent.py
+uv run python -m pytest tests/ -v
 ```
 
-每个 lesson 的详细步骤见各自的 `INSTALL.md`。
+> 运行 `cli-sample` 前先 `cp .env.example .env`，并填写
+> `OPENAI_API_KEY / OPENAI_BASE_URL / OPENAI_MODEL` 三项；只填 Key 会因缺少
+> `OPENAI_BASE_URL` 启动失败。lesson1 / lesson2 的示例不需要真实 LLM Key。
+
+每个 lesson 的详细步骤见各自的 `INSTALL.md`。平台/网络问题见
+[`docs/environment.md`](docs/environment.md) 和 [`wheels/README.md`](wheels/README.md)。
 
 ---
 

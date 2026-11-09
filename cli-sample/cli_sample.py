@@ -20,9 +20,9 @@ cli-sample: 用 TongAgent SDK StatelessReactAgent 的最简 CLI
     # 1. 复制 Tong-Agent 的 .env (含 OPENAI_* 三件套)
     cp ~/work/codework/tong_agents/Tong-Agent/.env .env
 
-    # 2. 装 SDK (不需要 tongagents-cli)
-    pip install tongagents==2.7.20 python-dotenv
-    #    (或 uv sync)
+    # 2. 装 SDK (tongagents 不在公共 PyPI，使用仓库本地 wheel)
+    pip install ../wheels/tongagents-*.whl ../wheels/tongagents_cli-*.whl
+    pip install -e .
 
     # 3. 跑
     $ python cli_sample.py

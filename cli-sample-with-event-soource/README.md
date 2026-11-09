@@ -1,120 +1,140 @@
-# CLI Sample with EventSource + Agent (v4)
+# CLI Sample with EventSource + Agent (v5)
 
-最小可运行的 **Tong-Agent EventSource + Agent 集成** 教学示例 (Task #3470 v4).
+最小可运行的 **Tong-Agent EventSource + Agent 集成** 教学示例。
 
-跟 `cli-sample/` 互补:
-- `cli-sample/`: **Agent + Tools** (LLM 调用本地工具)
-- `cli-sample-with-event-soource/`: **EventSource + Agent** (定时触发 → agent 处理 → 工具调用)
+跟 `cli-sample/` 互补：
 
----
-
-## 🎯 v4 设计目标 (Task #3470)
-
-按用户飞书反馈 (Task #3470): v3 不符合预期, **handler 重复造轮子**, 应该:
-
-1. ✅ **单 handler** — 去掉 `CliEventHandler / cli_observer`, 只保留 `AgentHandler`
-2. ✅ **复用 cli-sample 的"等用户 input + 输出 agent response"循环** —
-   v3 AgentHandler 自己实现 `_mini_agent_loop / _call_real_llm_loop / _execute_tool`,
-   v4 完全删掉, 直接复用 `cli-sample/cli_sample.py:main()` 的循环结构
-3. ✅ **ES event 封装成 user input, 注入同一个循环** — Event 走和 user input 完全一样的路径
-4. ✅ **标明复用 cli-sample 逻辑, 只新增 ES 机制**
+- `cli-sample/`：**Agent + Tools**（LLM 调用本地工具）
+- `cli-sample-with-event-soource/`：**EventSource + Agent**（定时触发 → agent 处理 → 工具调用）
 
 ---
 
-## 流程 (v4)
+## 架构（v5）
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│ 主线程: 复用 cli-sample 的 REPL 循环 (跟 cli_sample.py:main() 一致)  │
-│   while True:                                                         │
-│       user_input = input_queue.get()       # user 或 ES 注入          │
-│       if user_input in ('exit','quit','q'): break                     │
-│       response = agent.step(user_input)     # SDK StatelessReactAgent│
-│       print(response)                                                 │
+│ stdin reader (后台线程)                                              │
+│   input() → runtime.add_user_input(..., source_tag="stdin")          │
 └──────────────────────────────────────────────────────────────────────┘
-                              ↑                                ↓
-                  input_queue (queue.Queue)             agent.step() (SDK)
-                              ↑
-                  ES dispatcher thread (后台)
-                              ↑
-                  runtime.get_event() (auto_dispatch=False)
-                              ↑
-                  runtime._queue
-                              ↑
-                  TimerEventSource (后台线程)
+                               ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│ TimerEventSource (后台线程)                                          │
+│   runtime.add_event(event)                                           │
+│     → AgentHandler.handle(event, runtime)                            │
+│     → runtime.add_user_input(..., source_tag="es_event:...")         │
+└──────────────────────────────────────────────────────────────────────┘
+                               ↓
+                  runtime.input_queue (统一 queue)
+                               ↓
+┌──────────────────────────────────────────────────────────────────────┐
+│ main loop (主线程)                                                   │
+│   item = runtime.get_input(timeout=0.5)                              │
+│   actions = agent.step(LLMInputEvent(input=[UserPromptMessage(...)]))│
+│   print(最终 TextAction.content)                                     │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-**复用 vs 新增**:
-| 来自 cli-sample (复用) | 本文件 (新增) |
-|---|---|
-| `agent.step()` 调用结构 | `input_queue` (合并 user + ES 事件) |
-| REPL 循环: `input → step → print` | `event_to_user_input()` 转换 |
-| 6 个工具 (`bash / read_file / ...`) | ES dispatcher 后台线程 |
-| `StatelessReactAgent` 构造 | `runtime.auto_dispatch=False` 模式 |
+v5 的关键点：
+
+- **统一输入队列**：stdin 和 ES event 都进入 `runtime.input_queue`，主循环只从这一个来源取。
+- **没有独立 dispatcher 线程**：`AgentHandler.handle(event, runtime)` 自己把 event 包装成
+  user input 并推入 queue。
+- **复用 cli-sample**：`AgentHandler` 注册 `cli-sample/tools/` 的 6 个工具，并构造同样的
+  `StatelessReactAgent`。
 
 ---
 
-## 文件结构 (v4)
+## 文件结构
 
-```
+```text
 cli-sample-with-event-soource/
-├── README.md                          # 本文件
-├── test_run.py                        # 集成测试 (v4: --mock-llm / 默认)
-├── src/
-│   ├── main.py                        # CLI 入口 (复用 cli-sample 循环 + ES dispatcher)
-│   ├── event_source/
-│   │   ├── __init__.py
-│   │   ├── runtime.py                 # EventSourceRuntime (新: auto_dispatch 模式)
-│   │   └── timer_source.py            # TimerEventSource (固定间隔 emit)
-│   └── handlers/
-│       ├── __init__.py                # 只导出 AgentHandler
-│       └── agent_handler.py           # 单 handler (复用 cli-sample agent 模式)
-└── requirements.txt
+├── README.md
+├── pyproject.toml                     # uv 环境与本地 wheel 依赖
+├── requirements.txt                   # 兼容旧流程的额外依赖说明
+├── test_run.py                        # 只验证 queue + event 注入，不调用 LLM
+└── src/
+    ├── main.py                        # CLI 入口
+    ├── event_source/
+    │   ├── __init__.py
+    │   ├── runtime.py                 # EventSourceRuntime（统一 input_queue）
+    │   └── timer_source.py            # TimerEventSource
+    └── handlers/
+        ├── __init__.py                # 只导出 AgentHandler
+        └── agent_handler.py           # 注册工具 + 构造 agent + 推 event
 ```
 
-注意: v4 **删除了** `cli_handler.py` (CliEventHandler / cli_observer 不再存在).
+> 本示例复用 `../cli-sample/tools/`，因此需要在完整课程仓库中运行，不能只复制本目录。
+
+---
+
+## 安装
+
+本示例有自己的 `pyproject.toml`，使用 uv 管理环境：
+
+```bash
+# 在仓库根目录
+unzip -o wheels/tongagents-wheels.zip -d wheels/
+
+cd cli-sample-with-event-soource
+uv sync
+```
+
+`uv sync` 会根据 `[tool.uv.sources]` 安装本地 tongagents，并创建 `.venv`，使用仓库中的 `uv.lock` 锁定依赖。
+本示例复用 `../cli-sample/tools/`，因此需要在完整课程仓库内运行。
+
+> ⚠️ `tongagents` 不在公共 PyPI，不能 `pip install tongagents`。必须使用仓库
+> `wheels/` 中的本地 wheel。平台/依赖说明见
+> [`../wheels/README.md`](../wheels/README.md) 和
+> [`../docs/environment.md`](../docs/environment.md)。
 
 ---
 
 ## 运行
 
-### 默认 (有 OPENAI_API_KEY + OPENAI_MODEL 走真 LLM, 否则报错走不通)
+### 配置 LLM
 
-```bash
-cd cli-sample-with-event-soource/src
-python3 main.py
-```
-
-预期:
-- 后台启动 `TimerEventSource` (默认每 30 秒触发, 最多 5 次)
-- ES event 通过 dispatcher 转 user input, 推到 `input_queue`
-- 主线程从 `input_queue` 拿 item, 走 cli-sample 一样的 `agent.step(user_input) → print(response)`
-- 输入 `exit` / `quit` / `q` 退出
-
-### 真 LLM 跑法 (推荐)
+本示例不会自动读取 `.env`，需要在 shell 中导出三项环境变量：
 
 ```bash
 export OPENAI_API_KEY="sk-..."
-export OPENAI_BASE_URL="https://api.minimaxi.com/v1"
-export OPENAI_MODEL="MiniMax-M2"
-
-cd cli-sample-with-event-soource/src
-python3 main.py
+export OPENAI_BASE_URL="https://api.openai.com/v1"
+export OPENAI_MODEL="gpt-4o-mini"
 ```
 
-### 快速测试 (短间隔)
+> 三项都必须设置；只设置 `OPENAI_API_KEY` 会报
+> `ValueError: service url is required but not given`。
+
+### 启动
 
 ```bash
-EVENT_INTERVAL_SECONDS=1 EVENT_MAX_COUNT=2 python3 main.py
+cd cli-sample-with-event-soource
+uv run python src/main.py
+```
+
+预期：
+
+- 后台启动 `TimerEventSource`（默认每 30 秒触发，最多 5 次）
+- 定时事件被包装成 user input，走与手工输入相同的 `agent.step()` 路径
+- 输入 `exit` / `quit` / `q` 退出
+
+### 快速测试（短间隔）
+
+```bash
+cd cli-sample-with-event-soource
+EVENT_INTERVAL_SECONDS=1 EVENT_MAX_COUNT=2 uv run python src/main.py
 ```
 
 ### 集成测试
 
+`test_run.py` 只验证 queue / event 注入逻辑，**不会调用 LLM**：
+
 ```bash
 cd cli-sample-with-event-soource
-python3 test_run.py                    # 默认: 真调 LLM (如果有 env)
-python3 test_run.py --mock-llm         # 跳过 LLM 调用, 只验证 ES 注入 + 循环
+uv run python test_run.py
 ```
+
+它仍然会构造 `AgentHandler`，所以需要先执行 `uv sync`，并设置一个可用的
+`OPENAI_BASE_URL`（可以是假地址，因为测试不会真正发请求）。
 
 ---
 
@@ -125,52 +145,40 @@ python3 test_run.py --mock-llm         # 跳过 LLM 调用, 只验证 ES 注入 
 | `OPENAI_API_KEY` | (无) | LLM key |
 | `OPENAI_BASE_URL` | (无) | OpenAI 兼容端点 URL |
 | `OPENAI_MODEL` | (无) | 模型名 |
-| `EVENT_INTERVAL_SECONDS` | `30` | 定时间隔 (秒) |
+| `EVENT_INTERVAL_SECONDS` | `30` | 定时间隔（秒） |
 | `EVENT_MAX_COUNT` | `5` | 最大触发次数 |
 
 ---
 
-## v3 → v4 关键变化
+## v4 → v5 关键变化
 
-| 维度 | v3 (Task #3469) | v4 (Task #3470) |
+| 维度 | v4 | v5 |
 |---|---|---|
-| Handler 数 | 2 (AgentHandler + CliEventHandler) | **1** (AgentHandler) |
-| 循环逻辑 | AgentHandler 内实现 `_mini_agent_loop` | **复用 cli-sample 的 REPL** |
-| Event 处理路径 | runtime dispatcher → `handler.handle(event)` → 内部 mini loop | runtime `auto_dispatch=False` → ES dispatcher → 转 user input → input_queue → cli-sample 循环 |
-| Agent 构造 | AgentHandler 内置 `StatelessReactAgent` | AgentHandler 提供 `.agent`, 跟 cli-sample 同构造 |
-| Mock fallback | AgentHandler `_mock_llm_loop` + 简易 tool | **删除** — cli-sample 本身只跑真 LLM, 没 mock |
-| 用户输入 | 不支持 (只有 ES 触发) | input_queue 合并 user + ES (跟 cli-sample 一样) |
-| `Runtime` 配置 | `add_handler` + `bind` | **`auto_dispatch=False`** (外部消费) |
+| Event 注入 | `main.py` 里的独立 `es_dispatcher` 线程 | `AgentHandler.handle(event, runtime)` 直接推 queue |
+| stdin | main loop 直接 `input()` | `stdin_reader` 后台线程 → `runtime.add_user_input()` |
+| 输入来源 | user 和 event 分开处理 | 统一 `runtime.input_queue` |
+| Runtime 配置 | `auto_dispatch=False` | 无 `auto_dispatch`，runtime 持有统一 queue |
+| 代码入口 | `run_cli_loop()` + dispatcher | `run_cli_loop()` 单源消费 `runtime.get_input()` |
 
 ---
 
-## 与 Tong-Agent / cli-sample 对应
+## 与 cli-sample 的对应关系
 
-| 本示例 (v4) | cli-sample/cli_sample.py | Tong-Agent |
-|---|---|---|
-| `AgentHandler.agent` | `CliSampleAgent` (内部 `StatelessReactAgent`) | `tongagents_cli` agent |
-| `run_cli_loop()` | `main()` (REPL) | `cli` REPL |
-| `event_to_user_input()` | — (没有 ES) | (lark_cli 提取 message 字段) |
-| `make_es_dispatcher()` | — | (SDK dispatcher 走 EventSource) |
-| `TimerEventSource` | — | `tongagents_cli.event_source.handlers.TimerHandler` |
-| 6 个 tool | 同 | `tongagents_cli.default_agent.tools.*` |
+| 本示例 | cli-sample/cli_sample.py |
+|---|---|
+| `AgentHandler.agent` | `CliSampleAgent`（内部 `StatelessReactAgent`） |
+| `run_cli_loop()` | `main()` REPL |
+| `event_to_user_input()` | —（没有 ES） |
+| `TimerEventSource` | — |
+| 6 个工具 | `tools/` 同名工具 |
 
 ---
 
 ## 设计动机
 
-- **为什么 v4 删掉 mini loop**: 用户飞书原话:
-  > "handler 里面就保留使用到的 handler 就好, 一个就行, 另外需要用
-  > cli-sample 里面的命令行中的等待用户 input 和输出 agent response 的循环逻辑"
-
-  v3 的 `_mini_agent_loop` / `_call_real_llm_loop` / `_execute_tool` 是重复造轮子
-  (cli-sample 已经有完整 REPL). v4 完全复用 cli-sample 的循环, AgentHandler
-  只做 "提供 agent" 这一件事.
-
-- **为什么 `auto_dispatch=False`**: v3 让 runtime dispatcher 直接调 `handler.handle(event)`,
-  但 v4 我们要把 event 转 user input 注入到 REPL — 需要外部消费 queue.
-  所以给 `EventSourceRuntime` 加了 `auto_dispatch` 参数 (默认 True 兼容 v3).
-
-- **为什么删除 CliEventHandler**: 用户原话 "handler 里面就保留使用到的 handler 就好,
-  一个就行". v3 的 CliEventHandler 只做 console 打印, 跟"等 user input + 输出 agent
-  response"的主循环无关, 删掉.
+- **为什么复用 cli-sample**：REPL、工具注册、Agent 构造都已在 cli-sample 中验证过，
+  本示例只新增 EventSource 机制，避免重复造轮子。
+- **为什么统一 input_queue**：让用户输入和定时事件走完全相同的处理路径，主循环不需要
+  区分来源，也不需要额外的 dispatcher 线程。
+- **为什么 handler 负责推 queue**：`AgentHandler` 最清楚 event 应该如何转换成 user input；
+  把转换逻辑放在 handler 里，main loop 可以保持和 cli-sample 一样简单。
